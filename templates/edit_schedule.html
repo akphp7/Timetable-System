@@ -1,0 +1,91 @@
+<!--
+============================================================================
+edit_schedule.html — Edit/Move Schedule Entry Page
+============================================================================
+
+WHAT THIS DOES:
+Allows the user to move a schedule entry to a different day and time slot.
+Shows the current day/slot and provides dropdowns to pick new ones.
+
+The lunch slot (slot 4, 12:00-1:00 PM) is excluded from the dropdown
+options to prevent moving entries into the lunch break.
+
+FLOW:
+1. User clicks "Edit" on a schedule entry in manage_batch.html
+2. This page shows the current slot and lets them pick a new one
+3. On submit, the edit_schedule() route checks for conflicts
+4. If no conflicts, the entry is moved to the new day/slot
+============================================================================
+-->
+
+{% extends 'base.html' %}
+{% block title %}Edit Schedule - Timetable System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0" style="color: var(--primary);">
+                    <i class="fas fa-edit me-2"></i>Move Schedule Entry
+                </h5>
+                <p class="text-muted mb-0 mt-1">
+                    Course: <strong>{{ course.name }}</strong>
+                </p>
+            </div>
+            <div class="card-body p-4">
+                <!-- Info alert showing current slot -->
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Current slot: <strong>{{ days[schedule.day] }}, {{ time_slots[schedule.slot] }}</strong>
+                </div>
+
+                <form method="POST">
+                    <!-- Day selector -->
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">New Day</label>
+                        <select class="form-select" name="day" required>
+                            {% for day in days %}
+                            <option value="{{ loop.index0 }}"
+                                    {% if loop.index0 == schedule.day %}selected{% endif %}>
+                                {{ day }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Time slot selector (lunch slot excluded) -->
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">New Time Slot</label>
+                        <select class="form-select" name="slot" required>
+                            {% for slot in time_slots %}
+                            {% if loop.index0 != 4 %}
+                            <!--
+                            loop.index0 gives 0-based index.
+                            We skip index 4 (the lunch slot) so users can't
+                            accidentally move a class to the lunch break.
+                            -->
+                            <option value="{{ loop.index0 }}"
+                                    {% if loop.index0 == schedule.slot %}selected{% endif %}>
+                                {{ slot }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Save Changes
+                        </button>
+                        <a href="{{ url_for('manage_batch', batch_id=schedule.batch_id) }}"
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

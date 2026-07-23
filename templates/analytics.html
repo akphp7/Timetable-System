@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% block title %}Analytics - Timetable System{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stat-card {
+    text-align: center;
+    padding: 1.5rem;
+    transition: transform 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-4px); }
+  .stat-number {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .utilization-bar {
+    height: 24px;
+    border-radius: 12px;
+  }
+  .chart-container {
+    position: relative;
+    height: 300px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="fw-bold mb-4" style="color: var(--primary)">
+  <i class="fas fa-chart-bar me-2"></i>Analytics Dashboard
+</h2>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card stat-card">
+      <div class="stat-number">{{ total_batches }}</div>
+      <div class="stat-label">Batches</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card stat-card">
+      <div class="stat-number">{{ total_classrooms }}</div>
+      <div class="stat-label">Classrooms</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card stat-card">
+      <div class="stat-number">{{ total_labs }}</div>
+      <div class="stat-label">Labs</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card stat-card">
+      <div class="stat-number">{{ total_courses }}</div>
+      <div class="stat-label">Courses</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card stat-card">
+      <div class="stat-number">{{ total_professors }}</div>
+      <div class="stat-label">Professors</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card stat-card">
+      <div class="stat-number">{{ total_schedules }}</div>
+      <div class="stat-label">Scheduled Slots</div>
+    </div>
+  </div>
+</div>
+
+<!-- Utilization Overview -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-chalkboard me-2"></i>Classroom Utilization</h5>
+      <div class="d-flex justify-content-between mb-1">
+        <span>{{ classroom_utilization }}% used</span>
+        <span class="text-muted">{{ total_classrooms }} rooms &times; 40 slots/week</span>
+      </div>
+      <div class="progress utilization-bar">
+        <div class="progress-bar bg-{{ 'success' if classroom_utilization < 60 else 'warning' if classroom_utilization < 85 else 'danger' }}"
+             style="width: {{ classroom_utilization }}%">{{ classroom_utilization }}%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-flask me-2"></i>Lab Utilization</h5>
+      <div class="d-flex justify-content-between mb-1">
+        <span>{{ lab_utilization }}% used</span>
+        <span class="text-muted">{{ total_labs }} labs &times; 40 slots/week</span>
+      </div>
+      <div class="progress utilization-bar">
+        <div class="progress-bar bg-{{ 'success' if lab_utilization < 60 else 'warning' if lab_utilization < 85 else 'danger' }}"
+             style="width: {{ lab_utilization }}%">{{ lab_utilization }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 1: Day & Slot Distribution -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-calendar-week me-2"></i>Classes per Day</h5>
+      <div class="chart-container">
+        <canvas id="dayChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-clock me-2"></i>Classes per Time Slot</h5>
+      <div class="chart-container">
+        <canvas id="slotChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 2: Professor Workload & Batch Course Counts -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-user-tie me-2"></i>Professor Workload (hrs/week)</h5>
+      <div class="chart-container" style="height: {{ [300, professor_workload|length * 28]|max }}px;">
+        <canvas id="profChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-users me-2"></i>Courses per Batch</h5>
+      <div class="chart-container" style="height: {{ [300, batch_course_counts|length * 24]|max }}px;">
+        <canvas id="batchChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Tables Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-building me-2"></i>Classroom Usage</h5>
+      <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+        <table class="table table-sm table-hover mb-0">
+          <thead><tr><th>Room</th><th>Capacity</th><th>Slots Used</th><th>%</th></tr></thead>
+          <tbody>
+            {% for cr in classroom_usage %}
+            <tr>
+              <td>{{ cr.name }}</td>
+              <td>{{ cr.capacity }}</td>
+              <td>{{ cr.slots_used }}</td>
+              <td>
+                {% set pct = (cr.slots_used / 40 * 100)|round(1) %}
+                <span class="badge bg-{{ 'success' if pct < 60 else 'warning' if pct < 85 else 'danger' }}">{{ pct }}%</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3"><i class="fas fa-microscope me-2"></i>Lab Usage</h5>
+      <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+        <table class="table table-sm table-hover mb-0">
+          <thead><tr><th>Lab</th><th>Capacity</th><th>Slots Used</th><th>%</th></tr></thead>
+          <tbody>
+            {% for lb in lab_usage %}
+            <tr>
+              <td>{{ lb.name }}</td>
+              <td>{{ lb.capacity }}</td>
+              <td>{{ lb.slots_used }}</td>
+              <td>
+                {% set pct = (lb.slots_used / 40 * 100)|round(1) %}
+                <span class="badge bg-{{ 'success' if pct < 60 else 'warning' if pct < 85 else 'danger' }}">{{ pct }}%</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  // Color palette
+  const COLORS = ['#4361ee','#3a86ff','#8338ec','#ff006e','#fb5607','#ffbe0b','#06d6a0','#118ab2','#073b4c'];
+
+  // Day Distribution Bar Chart
+  new Chart(document.getElementById('dayChart'), {
+    type: 'bar',
+    data: {
+      labels: [{% for d in day_distribution %}'{{ d.day }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      datasets: [{
+        label: 'Total classes',
+        data: [{% for d in day_distribution %}{{ d.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor: COLORS.slice(0, {{ day_distribution|length }}),
+        borderRadius: 6
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // Slot Distribution Bar Chart
+  new Chart(document.getElementById('slotChart'), {
+    type: 'bar',
+    data: {
+      labels: [{% for s in slot_distribution %}'{{ s.slot }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      datasets: [{
+        label: 'Total classes',
+        data: [{% for s in slot_distribution %}{{ s.count }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor: '#4361ee',
+        borderRadius: 6
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // Professor Workload Horizontal Bar
+  new Chart(document.getElementById('profChart'), {
+    type: 'bar',
+    data: {
+      labels: [{% for p in professor_workload %}'{{ p.name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      datasets: [{
+        label: 'Hours/week',
+        data: [{% for p in professor_workload %}{{ p.hours }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor: '#8338ec',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  // Batch Course Count Horizontal Bar
+  new Chart(document.getElementById('batchChart'), {
+    type: 'bar',
+    data: {
+      labels: [{% for b in batch_course_counts %}'{{ b.name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+      datasets: [{
+        label: 'Courses',
+        data: [{% for b in batch_course_counts %}{{ b.courses }}{% if not loop.last %},{% endif %}{% endfor %}],
+        backgroundColor: '#06d6a0',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  });
+</script>
+{% endblock %}

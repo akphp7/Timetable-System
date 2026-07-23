@@ -1,0 +1,28 @@
+# ============================================================================
+# requirements.txt — Python Package Dependencies
+# ============================================================================
+#
+# This file lists all the external Python libraries this project needs.
+# Install them all at once with: pip install -r requirements.txt
+#
+# Only the packages actually used in this project are listed here.
+# ============================================================================
+
+Flask==3.1.1
+# The web framework — handles HTTP requests, routing, templates, etc.
+
+Flask-SQLAlchemy==3.1.1
+# SQLAlchemy integration for Flask — lets us use Python classes as database tables
+
+openpyxl==3.1.5
+# Library for creating/reading Excel (.xlsx) files
+
+Werkzeug>=3.0.0
+# Flask's underlying HTTP utility library (includes password hashing)
+# Flask depends on it anyway, but we list it explicitly since we use its security module
+
+pypdf==4.3.1
+# PDF text extraction for the research-paper engine modules
+
+scikit-learn==1.5.1
+# TF-IDF vectorization and cosine similarity retrieval baseline

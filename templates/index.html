@@ -1,0 +1,150 @@
+<!--
+============================================================================
+index.html — Home Page (Batch Listing)
+============================================================================
+
+WHAT THIS DOES:
+Shows all student batches as Bootstrap cards in a grid layout.
+Each card has:
+  - The batch name
+  - "Manage" button - goes to the batch's timetable page
+  - "Download" button - goes to the download/export page
+  - "Delete" button - opens a confirmation modal
+
+If no batches exist, shows a friendly "Create your first batch" message.
+
+KEY CONCEPTS:
+- for batch in batches - Loops through the list of batches
+- Bootstrap grid: col-md-4 = 3 cards per row on medium+ screens
+- Bootstrap modal: A popup dialog for delete confirmation
+  - data-bs-toggle="modal" + data-bs-target="#modalId" triggers it
+- CSRF note: The delete form uses POST (not GET) because deleting
+  data should never happen via a simple link click.
+============================================================================
+-->
+
+{% extends 'base.html' %} {% block title %}Home - Timetable System{% endblock %}
+{% block content %}
+<!-- Page header with title and "New Batch" button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0" style="color: var(--primary)">
+    <i class="fas fa-calendar-alt me-2"></i>Batches
+  </h2>
+  {% if session.get('role') == 'admin' %}
+  <a href="{{ url_for('create_batch') }}" class="btn btn-primary">
+    <i class="fas fa-plus-circle me-1"></i> New Batch
+  </a>
+  {% endif %}
+</div>
+
+{% if batches %}
+<!-- Grid of batch cards -->
+<div class="row g-3 mb-4">
+  {% for batch in batches %}
+  <div class="col-md-4 col-sm-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title fw-bold" style="color: var(--primary)">
+          <i class="fas fa-users me-2"></i>{{ batch.name }}
+        </h5>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          <!-- Manage/View button — goes to the batch's timetable -->
+          <a
+            href="{{ url_for('manage_batch', batch_id=batch.id) }}"
+            class="btn btn-primary btn-sm"
+          >
+            <i class="fas fa-{{ 'cog' if session.get('role') == 'admin' else 'eye' }} me-1"></i>{{ 'Manage' if session.get('role') == 'admin' else 'View' }}
+          </a>
+          <!-- Download button -->
+          <a
+            href="{{ url_for('select_batches') }}"
+            class="btn btn-outline-success btn-sm"
+          >
+            <i class="fas fa-download me-1"></i>Download
+          </a>
+          {% if session.get('role') == 'admin' %}
+          <!-- Delete button — opens the modal below (admin only) -->
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            data-bs-toggle="modal"
+            data-bs-target="#deleteBatchModal{{ batch.id }}"
+          >
+            <i class="fas fa-trash me-1"></i>Delete
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    DELETE CONFIRMATION MODAL
+    This is a Bootstrap modal — a popup dialog that appears when the
+    delete button is clicked. It asks "Are you sure?" before actually
+    submitting the delete form.
+
+    Each batch has its own modal (unique ID: deleteBatchModal + batch.id).
+    -->
+  <div class="modal fade" id="deleteBatchModal{{ batch.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+          ></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete batch
+          <strong>{{ batch.name }}</strong>? This will also remove all its
+          scheduled courses.
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <form
+            method="POST"
+            action="{{ url_for('delete_batch', batch_id=batch.id) }}"
+            class="d-inline"
+          >
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-trash me-1"></i>Delete
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Download all timetables button -->
+<div class="text-center">
+  <a href="{{ url_for('select_batches') }}" class="btn btn-outline-primary">
+    <i class="fas fa-file-export me-1"></i> Download Timetables
+  </a>
+</div>
+
+{% else %}
+<!-- Empty state — shown when no batches exist -->
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+    <h5 class="text-muted">No batches yet</h5>
+    <p class="text-muted mb-4">Create your first batch to get started.</p>
+    <a href="{{ url_for('create_batch') }}" class="btn btn-primary">
+      <i class="fas fa-plus-circle me-1"></i> Create Batch
+    </a>
+  </div>
+</div>
+{% endif %} {% endblock %}

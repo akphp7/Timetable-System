@@ -1,0 +1,202 @@
+<!--
+============================================================================
+classrooms.html — Classroom Management Page
+============================================================================
+
+WHAT THIS DOES:
+Two-column layout:
+  LEFT:  Form to add classrooms (manually or via CSV upload)
+  RIGHT: Table listing all existing classrooms with delete buttons
+
+HOW THE TWO FORMS WORK:
+1. Manual form — Fields: name + capacity → POSTs to manage_classrooms()
+2. CSV form — File upload with enctype="multipart/form-data"
+   The backend checks if 'file' is in request.files to distinguish
+   between the two forms.
+
+CSV FORMAT:
+  name,capacity
+  LH-101,60
+  LH-102,45
+
+DELETE FLOW:
+  Each row has a delete button that opens a Bootstrap modal.
+  The modal contains a form that POSTs to delete_classroom(classroom_id).
+============================================================================
+-->
+
+{% extends 'base.html' %} {% block title %}Classrooms - Timetable System{%
+endblock %} {% block content %}
+<div class="row g-4">
+  <!-- ========== LEFT COLUMN: Add Classroom Forms ========== -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header bg-white border-0 pt-4 px-4">
+        <h5 class="fw-bold mb-0" style="color: var(--primary)">
+          <i class="fas fa-plus-circle me-2"></i>Add Classroom
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        <!-- Manual add form -->
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Room Name</label>
+            <input
+              type="text"
+              class="form-control"
+              name="name"
+              placeholder="e.g. LH-101"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Capacity</label>
+            <input
+              type="number"
+              class="form-control"
+              name="capacity"
+              placeholder="e.g. 60"
+              min="1"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-plus me-1"></i>Add Classroom
+          </button>
+        </form>
+
+        <hr />
+
+        <!-- CSV upload form -->
+        <h6 class="fw-bold text-muted mb-3">
+          <i class="fas fa-file-csv me-2"></i>Upload CSV
+        </h6>
+        <form method="POST" enctype="multipart/form-data">
+          <!--
+                    enctype="multipart/form-data" is REQUIRED for file uploads.
+                    Without it, the browser sends the filename but not the file content.
+                    -->
+          <div class="mb-3">
+            <input
+              class="form-control"
+              type="file"
+              name="file"
+              accept=".csv"
+              required
+            />
+            <div class="form-text">
+              CSV format: name, capacity (with header row)
+            </div>
+          </div>
+          <button type="submit" class="btn btn-outline-primary w-100">
+            <i class="fas fa-upload me-1"></i>Upload CSV
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== RIGHT COLUMN: Classrooms Table ========== -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div
+        class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center"
+      >
+        <h5 class="fw-bold mb-0" style="color: var(--primary)">
+          <i class="fas fa-chalkboard me-2"></i>Classrooms ({{ classrooms|length
+          }})
+          <!--
+                    classrooms|length is a Jinja2 filter.
+                    It's like len(classrooms) in Python.
+                    -->
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        {% if classrooms %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Capacity</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for classroom in classrooms %}
+              <tr>
+                <td class="text-muted">{{ loop.index }}</td>
+                <!-- loop.index gives 1, 2, 3... (auto counter) -->
+                <td class="fw-medium">{{ classroom.name }}</td>
+                <td>{{ classroom.capacity }}</td>
+                <td class="text-end">
+                  <button
+                    class="btn btn-outline-danger btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deleteModal{{ classroom.id }}"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Delete confirmation modal for this classroom -->
+              <div
+                class="modal fade"
+                id="deleteModal{{ classroom.id }}"
+                tabindex="-1"
+              >
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm
+                        Delete
+                      </h5>
+                      <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                      ></button>
+                    </div>
+                    <div class="modal-body">
+                      Delete classroom <strong>{{ classroom.name }}</strong>?
+                    </div>
+                    <div class="modal-footer">
+                      <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                      >
+                        Cancel
+                      </button>
+                      <form
+                        method="POST"
+                        action="{{ url_for('delete_classroom', classroom_id=classroom.id) }}"
+                        class="d-inline"
+                      >
+                        <button type="submit" class="btn btn-danger">
+                          <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <!-- Empty state -->
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-chalkboard fa-2x mb-2"></i>
+          <p>No classrooms added yet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

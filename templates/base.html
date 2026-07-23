@@ -1,0 +1,267 @@
+<!--
+============================================================================
+base.html — The Master Template (Layout)
+============================================================================
+
+WHAT THIS FILE DOES:
+This is the "parent" template that ALL other pages inherit from.
+It defines the common structure: navbar, styles, flash messages, footer.
+
+HOW TEMPLATE INHERITANCE WORKS IN JINJA2 (Flask's template engine):
+1. This file defines reusable "blocks" using block name / endblock tags
+2. Child templates use extends 'base.html' to inherit this layout
+3. They override specific blocks to insert their own content
+4. Anything outside the blocks is shared across ALL pages
+
+For example, the navbar and CSS appear on every page because they're
+defined outside any block in this base template.
+
+KEY CONCEPTS:
+- url_for('route_name')  - Generates the URL for a Flask route
+- session.get('username') - Gets the logged-in user's name
+- if / for               - Jinja2 control flow (like Python)
+- with                   - Creates a temporary variable scope
+- get_flashed_messages() - Gets one-time messages set by flash()
+============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Page title — child templates override this block -->
+    <title>{% block title %}Timetable Management System{% endblock %}</title>
+
+    <!-- Bootstrap 5 CSS — A popular CSS framework for responsive design -->
+    <!-- It gives us pre-built classes like "container", "row", "col-md-4", etc. -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome 6 — Icon library (the <i class="fas fa-home"> tags) -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Custom CSS for consistent styling -->
+    <style>
+      /* CSS custom properties (variables) — reusable color definitions */
+      :root {
+        --primary: #4361ee; /* Main brand color (blue) */
+        --primary-dark: #3a56d4; /* Darker shade for hover effects */
+      }
+
+      body {
+        background-color: #f5f7fa; /* Light gray background */
+        min-height: 100vh; /* Full viewport height minimum */
+      }
+
+      /* Logo in the navbar */
+      .navbar-brand img {
+        height: 40px;
+        width: 40px;
+        object-fit: cover; /* Crop image to fit without stretching */
+        border-radius: 50%; /* Make it circular */
+      }
+
+      /* Top navigation bar styling */
+      .navbar {
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-dark) 100%
+        );
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      }
+
+      .main-content {
+        padding: 2rem 0;
+      }
+
+      /* Card component styling (used for most content boxes) */
+      .card {
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+        border-radius: 12px; /* Rounded corners */
+      }
+
+      /* Override Bootstrap primary button colors with our brand color */
+      .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+      }
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+      }
+
+      /* Table header styling */
+      .table th {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      /* Special styling for lunch break cells in the timetable */
+      .lunch-cell {
+        background-color: #fff3cd !important; /* Yellow tint */
+        font-weight: 600;
+        color: #856404;
+      }
+
+      /* Timetable cell sizing */
+      .timetable-cell {
+        font-size: 0.8rem;
+        min-width: 90px;
+      }
+    </style>
+
+    <!-- Extra CSS block — child templates can add their own styles -->
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <!--
+    ====================================================================
+    NAVIGATION BAR
+    ====================================================================
+    This navbar appears on EVERY page. It uses Bootstrap's responsive
+    navbar component. On small screens, it collapses into a hamburger menu.
+
+    The nav links are only shown when the user is logged in
+    (checked via session.get('user_id')).
+    -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <div class="container">
+        <!-- Brand/Logo -->
+        <a
+          class="navbar-brand d-flex align-items-center gap-2"
+          href="{{ url_for('index') }}"
+        >
+          <img
+            src="{{ url_for('static', filename='nitr.jpeg') }}"
+            alt="Logo"
+          />
+          <span class="fw-bold">Timetable System</span>
+        </a>
+
+        <!-- Hamburger button for mobile -->
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Collapsible nav links -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <!-- Left-side nav links (only shown when logged in) -->
+          <ul class="navbar-nav me-auto">
+            {% if session.get('user_id') %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('index') }}">
+                <i class="fas fa-home me-1"></i>Home
+              </a>
+            </li>
+            {% if session.get('role') == 'admin' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('manage_classrooms') }}">
+                <i class="fas fa-chalkboard me-1"></i>Classrooms
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('manage_labs') }}">
+                <i class="fas fa-flask me-1"></i>Labs
+              </a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('select_batches') }}">
+                <i class="fas fa-file-excel me-1"></i>Download
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('analytics') }}">
+                <i class="fas fa-chart-bar me-1"></i>Analytics
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+
+          <!-- Right-side nav (username + logout OR login link) -->
+          <ul class="navbar-nav ms-auto">
+            {% if session.get('user_id') %}
+            <li class="nav-item">
+              <span class="nav-link text-white-50">
+                <i class="fas fa-user me-1"></i>{{ session.get('username') }}
+                <span class="badge bg-{{ 'warning' if session.get('role') == 'admin' else 'info' if session.get('role') == 'faculty' else 'secondary' }} ms-1">{{ session.get('role', 'user') }}</span>
+              </span>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">
+                <i class="fas fa-sign-out-alt me-1"></i>Logout
+              </a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('login') }}">
+                <i class="fas fa-sign-in-alt me-1"></i>Login
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!--
+    ====================================================================
+    MAIN CONTENT AREA
+    ====================================================================
+    This section:
+    1. Shows flash messages (success/error/warning alerts)
+    2. Renders the child template's content
+    -->
+    <div class="main-content">
+      <div class="container">
+        <!--
+            FLASH MESSAGES:
+            Flask's flash() function queues messages. get_flashed_messages()
+            retrieves them. Each message has a category (success, error, warning).
+            We use Bootstrap alert classes to style them accordingly.
+            The dismissible class adds an X button to close the alert.
+            -->
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %} {% for category, message in messages %}
+        <div
+          class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show"
+          role="alert"
+        >
+          <i
+            class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'error' else 'exclamation-triangle' if category == 'warning' else 'info-circle' }} me-2"
+          ></i>
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+          ></button>
+        </div>
+        {% endfor %} {% endif %} {% endwith %}
+
+        <!-- Child template content goes here -->
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JavaScript (needed for modals, collapse, alerts) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Extra JS block — child templates can add their own scripts -->
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

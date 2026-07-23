@@ -1,0 +1,73 @@
+# ============================================================
+# .gitignore — Timetable System
+# ============================================================
+
+# ---- Python bytecode ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# ---- Virtual environment ----
+venv/
+env/
+.venv/
+.env/
+ENV/
+
+# ---- Flask / SQLite database ----
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Secrets & environment variables ----
+.env
+*.env
+secrets.py
+
+# ---- Generated timetable Excel files (temp) ----
+timetables/
+
+# ---- Uploaded files ----
+uploads/
+
+# ---- Test cache ----
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ---- IDE / Editor files ----
+.vscode/
+.idea/
+*.code-workspace
+*.suo
+*.user
+
+# ---- OS generated files ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Distribution / packaging ----
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+
+# ---- Jupyter Notebooks ----
+.ipynb_checkpoints/
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Personal / irrelevant files ----
+with_internship_resume*.pdf
+CHAT_LOG.md
+INTERVIEW_PREP.md
